@@ -1,0 +1,191 @@
+C251 COMPILER V5.60.0,  electronic                                                         18/11/23  13:17:09  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE electronic
+OBJECT MODULE PLACED IN .\Out_File\electronic.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\electronic.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BR
+                    -OWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\
+                    -USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\electronic.lst) TABS(2) OBJECT(.\Out_File\electronic.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "electronic.h"
+    3          
+    4          #define count 10
+    5          
+    6          //采样512个点
+    7          //差比和加权系数
+    8          float weightA=1, weightB=1;
+    9          float Limit=1;//限幅系数
+   10          float electro_error = 0;        // 左横右横差比和
+   11          
+   12          int8 Turn_flag = 0;
+   13          //int16 L0=0,L1=0,L2=0,R0=0,R1=0,R2=0;
+   14          int16 MagneticField=0;//磁场整体强度
+   15          //int16 left = 0,middle = 0, right = 0;  // 电感偏移量
+   16          int16 LnowADC[6] = {0,0,0,0,0,0};           // 电感当前ADC数值
+   17          //int16 ad_max_heng,ad_max_shu,ad_max_xie;            //每个新赛道都需要重新标定最大值和最小
+             -值
+   18          //int16 ad_min_heng,ad_min_shu,ad_min_xie;  
+   19          
+   20          int16 ADC_DATA_CH0[6];   // 左横采样数组
+   21          int16 ADC_DATA_CH5[6];   // 右横采样数组
+   22          
+   23          int16 ADC_DATA_CH2[6];   // 中横采样数组
+   24          
+   25          int16 ADC_DATA_CH1[6];   // 左竖采样数组
+   26          int16 ADC_DATA_CH4[6];   // 右竖采样数组
+   27          
+   28          
+   29          void adc_data_convert(void);
+   30          uint16 adc_filter(int16 *a);
+   31          
+   32          
+   33          /**************6路电磁初始化函数*******
+   34           * 函数名称  ADC_6_road_init
+   35           * 入口参数  void
+   36           * 输出参数  void
+   37           */
+   38          void ADC_6_road_init()
+   39          {
+   40   1          adc_init(ADC0, ADC_SYSclk_DIV_2);
+   41   1          adc_init(ADC1, ADC_SYSclk_DIV_2);
+   42   1          adc_init(ADC2, ADC_SYSclk_DIV_2);
+   43   1          adc_init(ADC3, ADC_SYSclk_DIV_2);
+   44   1          adc_init(ADC4, ADC_SYSclk_DIV_2);
+   45   1          adc_init(ADC5, ADC_SYSclk_DIV_2);
+   46   1      }
+   47          /*************************************************************************
+   48           *  函数名称：void InductorNormal(void)
+   49           *  功能说明：采集电感电压并归一化；
+   50           *  参数说明：无 ,
+   51           *  函数返回：无
+   52           *  修改时间：2020年11月18日
+   53           *  备    注：   注意要先标定运放的放大倍数
+   54           *************************************************************************/
+   55          void InductorNormal(void)
+   56          {
+C251 COMPILER V5.60.0,  electronic                                                         18/11/23  13:17:09  PAGE 2   
+
+   57   1          adc_data_convert();
+   58   1          LnowADC[0] =  adc_filter(ADC_DATA_CH0);    // 左横
+   59   1          LnowADC[5] =  adc_filter(ADC_DATA_CH5);    // 右横
+   60   1          LnowADC[2] =  adc_filter(ADC_DATA_CH2);    // 中横
+   61   1        
+   62   1          LnowADC[1] =  adc_filter(ADC_DATA_CH1);    // 左竖
+   63   1          LnowADC[4] =  adc_filter(ADC_DATA_CH4);    // 右竖
+   64   1        
+   65   1          MagneticField = LnowADC[0] + LnowADC[5];//磁场整体强度
+   66   1          electro_error =
+   67   1                  (weightA*(LnowADC[0] - LnowADC[5]))*Limit
+   68   1                  /
+   69   1                  (weightA*(LnowADC[0] + LnowADC[5])+1);
+   70   1          electro_error *= 100;
+   71   1          Turn_flag=1;
+   72   1        }
+   73          //-------------------------------------------------------------------------------------------------------
+             -------------
+   74          // 函数简介     ADC 均值滤波转换
+   75          // 参数说明     ch              选择 ADC 通道 (详见 zf_driver_adc.h 中枚举 adc_channel_enum 
+             -定义)
+   76          // 参数说明     count           均值滤波次数
+   77          // 返回参数     uint16          转换的 ADC 值
+   78          // 使用示例     adc_mean_filter_convert(ADC1_CH0_A0, 5);                        // 采集5次去掉�
+             -�大和最小值 然后返回平均值
+   79          // 备注信息
+   80          //-------------------------------------------------------------------------------------------------------
+             -------------
+   81          uint16 adc_mean_filter_convert(ADCN_enum vadc_chn)
+   82          {
+   83   1          uint8 xdata i;
+   84   1          int16 xdata a[count+2],filter_temp,out=0,j;
+   85   1        //采集电感
+   86   1        for(i=0;i<count+2;i++)
+   87   1        {
+   88   2        a[i] = adc_once(vadc_chn, ADC_10BIT);
+   89   2        }
+   90   1        //冒泡排列
+   91   1        for(j = 0; j < count+1; j++)
+   92   1          {
+   93   2              for(i = 0; i < count+1 - j; i++)
+   94   2              {
+   95   3                  if(a[i] > a[i + 1])
+   96   3                  {
+   97   4                      filter_temp = a[i];
+   98   4                      a[i] = a[i + 1];
+   99   4                      a[i + 1] = filter_temp;
+  100   4                  }
+  101   3              }
+  102   2          }
+  103   1        //去掉最大以及最小值
+  104   1          for(i = 1; i < count+1; i++)
+  105   1          {
+  106   2            out += a[i];
+  107   2          } 
+  108   1        //取平均值
+  109   1          out = out / count ;
+  110   1          return (uint16)out;
+  111   1      }
+  112          
+  113          
+  114          
+  115          
+  116          void adc_data_convert(void)
+  117          {
+  118   1        uint8 xdata i;
+C251 COMPILER V5.60.0,  electronic                                                         18/11/23  13:17:09  PAGE 3   
+
+  119   1        
+  120   1        for(i=0; i<6; i++)
+  121   1        {
+  122   2          ADC_DATA_CH0[i] = adc_once(ADC0,ADC_10BIT);      // 左横
+  123   2          ADC_DATA_CH5[i] = adc_once(ADC5,ADC_10BIT);      // 右横
+  124   2      
+  125   2          ADC_DATA_CH2[i] = adc_once(ADC2,ADC_10BIT);      // 中横
+  126   2      //    ADC_DATA_CH3[i] = adc_once(ADC3,ADC_10BIT);      // 右斜
+  127   2          
+  128   2          ADC_DATA_CH1[i] = adc_once(ADC1,ADC_10BIT);      // 左竖
+  129   2          ADC_DATA_CH4[i] = adc_once(ADC4,ADC_10BIT);      // 右竖
+  130   2        }
+  131   1      }
+  132          
+  133          
+  134          uint16 adc_filter(int16 *a)
+  135          {
+  136   1          uint8 xdata i;
+  137   1          int16 xdata out=0;
+  138   1          
+  139   1          for(i=0; i<6; i++)
+  140   1          {
+  141   2            out += a[i];
+  142   2          }
+  143   1          
+  144   1          out = 0.1666 * out;
+  145   1          
+  146   1          return (int16)out;
+  147   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       937     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =        29     ------
+  xdata-const size     =    ------     ------
+  edata size           =       103     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        59     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

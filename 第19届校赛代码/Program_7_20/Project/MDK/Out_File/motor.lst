@@ -1,0 +1,104 @@
+C251 COMPILER V5.60.0,  motor                                                              18/11/23  13:17:10  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE motor
+OBJECT MODULE PLACED IN .\Out_File\motor.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\motor.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE 
+                    -INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\
+                    -inc;..\USER\src) DEBUG PRINT(.\Out_File\motor.lst) TABS(2) OBJECT(.\Out_File\motor.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "motor.h"
+    3          
+    4          
+    5          void Encoder_init(void){
+    6   1        ctimer_count_clean(P53);
+    7   1        ctimer_count_clean(P35);
+    8   1        ctimer_count_init(CTIM3_P04);
+    9   1        ctimer_count_init(CTIM0_P34);
+   10   1      }
+   11          
+   12          int16 encoder_get(CTIMN_enum pin)
+   13          {
+   14   1        int16 t;
+   15   1        t=ctimer_count_read(pin);
+   16   1        ctimer_count_clean(pin);
+   17   1        return t;
+   18   1      }
+   19          
+   20          void Motor_Init(void)
+   21          {
+   22   1          pwm_init(MotorA_N, MotorFre, 0);//引脚
+   23   1          pwm_init(MotorB_N, MotorFre, 0);
+   24   1          pwm_init(MotorB_P, MotorFre, 0);
+   25   1          pwm_init(MotorA_P, MotorFre, 0);
+   26   1      }
+   27          
+   28          void Motor_SpeedSet(int16 Duty_L,int16 Duty_R)
+   29          {
+   30   1          if(Duty_L>=0)
+   31   1          {
+   32   2              Duty_L=8.315*Duty_L+429.69;
+   33   2              Duty_Limit(Duty_L);
+   34   2              pwm_duty(MotorB_N,0);
+   35   2              pwm_duty(MotorA_N,Duty_L);
+   36   2          }
+   37   1          else if(Duty_L < 0)
+   38   1          {
+   39   2              Duty_L=-Duty_L;
+   40   2              Duty_L=8.315*Duty_L+429.69;
+   41   2              Duty_Limit(Duty_L);
+   42   2              pwm_duty(MotorB_N,Duty_L);
+   43   2              pwm_duty(MotorA_N,0);
+   44   2          }
+   45   1      
+   46   1          if(Duty_R>=0)
+   47   1          {
+   48   2             Duty_R=8.3372*Duty_R+469.37;
+   49   2             Duty_Limit(Duty_R);
+   50   2             pwm_duty(MotorA_P,Duty_R);
+   51   2             pwm_duty(MotorB_P,0);
+   52   2          }
+   53   1          else if(Duty_R < 0)
+   54   1          {   
+   55   2              Duty_R=-Duty_R;
+   56   2              Duty_R=8.3372*Duty_R+469.37;
+   57   2              Duty_Limit(Duty_R);
+C251 COMPILER V5.60.0,  motor                                                              18/11/23  13:17:10  PAGE 2   
+
+   58   2              pwm_duty(MotorA_P,0);
+   59   2              pwm_duty(MotorB_P,Duty_R);
+   60   2          }
+   61   1      }
+   62          void Duty_Limit(int16 Duty){
+   63   1           if(Duty>MAXDUTY)
+   64   1           {
+   65   2               Duty=MAXDUTY;
+   66   2           }
+   67   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       497     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        10     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,74 @@
+C251 COMPILER V5.60.0,  encoder                                                            06/07/23  13:33:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE encoder
+OBJECT MODULE PLACED IN .\Out_File\encoder.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\encoder.c XSMALL INTR2 ROM(HUGE) WARNINGLEVEL(3) OPTIMIZE(0,SP
+                    -EED) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\C
+                    -ODE;..\USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\encoder.lst) TABS(2) OBJECT(.\Out_File\encoder.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "encoder.h"
+    3          /*extern int16 EncoderGetSpeed;
+    4          int16 p=0;
+    5          
+    6          void encoder_init(void)
+    7          {
+    8            ctimer_count_init(CTIM3_P04);
+    9            //定时器1初始化 定时进中断 读取速度值
+   10            TM1PS = 350-1;     //35m/350 = 10e5           35 000 000  35000   1000
+   11            TMOD = 0x00; //模式 0
+   12            TL1 = 0xEF;           //55535  记10000个数   //0.1s
+   13            TH1 = 0xD8;
+   14            TR1 = 1; //启动定时器
+   15            ET1 = 1; //使能定时器中断
+   16            EA = 1; 
+   17          }
+   18          
+   19          int16 encoder_get(CTIMN_enum pin)
+   20          {
+   21            uint16 t;
+   22            t=ctimer_count_read(pin);
+   23            ctimer_count_clean(pin);
+   24            return t;
+   25          }
+   26          
+   27          void TM1_Isr() interrupt 3   //定时器1进中断读取速度
+   28          {
+   29            TL1 = 0xEF;    
+   30            TH1 = 0xD8;
+   31            EncoderGetSpeed = encoder_get();
+   32          //  pid_motor.ActualValue = (uint16) (PWMA_CNTRH << 8) | PWMA_CNTRL; //获取当前编码器的值
+   33          //  Exp_Val = pid_motor.ActualValue + PID_Control_Inc(&pid_motor);   //期望值（区分于目标值）                   
+   34            //pwm.....(Exp_Val); //期望值转化成占空比 
+   35          //  PWMB_CNTRH = 0; //清零编码器计数器值
+   36          //  PWMB_CNTRL = 0; 
+   37          } */
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =    ------     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+C251 COMPILER V5.60.0,  encoder                                                            06/07/23  13:33:28  PAGE 2   
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

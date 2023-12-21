@@ -1,0 +1,157 @@
+C251 COMPILER V5.60.0,  MyI2C                                                              08/07/23  20:48:15  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE MyI2C
+OBJECT MODULE PLACED IN .\Out_File\MyI2C.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\MyI2C.c XSMALL INTR2 ROM(HUGE) WARNINGLEVEL(3) OPTIMIZE(0,SPEE
+                    -D) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\COD
+                    -E;..\USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\MyI2C.lst) TABS(2) OBJECT(.\Out_File\MyI2C.obj) 
+
+stmt  level    source
+
+    1          //SCL: P32    SDA: P33
+    2          //SCL: P43    SDA: P40
+    3          //#define SCL1 P32
+    4          //#define SDA1 P33
+    5          
+    6          #define SCL1 P43
+    7          #define SDA1 P40
+    8          
+    9          #include "STC32Gxx.h"
+   10          
+   11          #define uint8 unsigned char
+   12            
+   13          void Delay_us1(int num)   //@33.1776MHz
+   14          {
+   15   1        while(num--)
+   16   1        {
+   17   2          unsigned long i;
+   18   2      
+   19   2        i = 7UL;
+   20   2        while (i) i--;
+   21   2        }
+   22   1      
+   23   1      }
+   24          
+   25          
+   26          void MyI2C_W_SCL(uint8 BitValue)      //写SCL
+   27          {
+   28   1        SCL1 = BitValue;
+   29   1        Delay_us1(10);
+   30   1      }
+   31          
+   32          void MyI2C_W_SDA(uint8 BitValue)      //写SDA
+   33          {
+   34   1        SDA1 = BitValue;
+   35   1        Delay_us1(10);
+   36   1      }
+   37          
+   38          uint8 MyI2C_R_SDA(void)           //读SDA
+   39          {
+   40   1        uint8 BitValue;
+   41   1        BitValue = SDA1;
+   42   1        Delay_us1(10);
+   43   1        
+   44   1        return BitValue;
+   45   1      }
+   46          
+   47          void MyI2C_Init()     //初始化
+   48          {
+   49   1      //  P3M0 |= 0x0c; //P32 和 P33为开漏输出
+   50   1      //  P3M1 |= 0x0c; 
+   51   1        
+   52   1          P4M0 |= 0x09;
+   53   1          P4M1 |= 0x09; 
+   54   1      
+   55   1      
+   56   1      }
+   57          
+C251 COMPILER V5.60.0,  MyI2C                                                              08/07/23  20:48:15  PAGE 2   
+
+   58          void MyI2C_Start(void)//开始
+   59          {
+   60   1        MyI2C_W_SDA(1);
+   61   1        MyI2C_W_SCL(1);
+   62   1        MyI2C_W_SDA(0);
+   63   1        MyI2C_W_SCL(0);
+   64   1      }
+   65          
+   66          void MyI2C_Stop(void)//停止
+   67          {
+   68   1        MyI2C_W_SDA(0);
+   69   1        MyI2C_W_SCL(1);
+   70   1        MyI2C_W_SDA(1);
+   71   1      }
+   72          
+   73          void MyI2C_SendByte(uint8 Byte)//发送字节
+   74          {
+   75   1        int i;
+   76   1        
+   77   1        for (i=0;i<8;i++)
+   78   1        {
+   79   2          MyI2C_W_SDA(Byte & (0x80>>i));
+   80   2          MyI2C_W_SCL(1);
+   81   2          MyI2C_W_SCL(0); 
+   82   2        }
+   83   1      
+   84   1      }
+   85          
+   86          uint8 MyI2C_ReceiveByte(void)//读取字节
+   87          {
+   88   1        uint8 Byte = 0x00, i;
+   89   1        MyI2C_W_SDA(1);
+   90   1        
+   91   1        for (i = 0;i<8;i++)
+   92   1        {
+   93   2          MyI2C_W_SCL(1);
+   94   2          if (MyI2C_R_SDA() == 1) { Byte |= (0x80>>i);}
+   95   2          MyI2C_W_SCL(0);
+   96   2        }
+   97   1      
+   98   1        return Byte;
+   99   1      } 
+  100          
+  101          void MyI2C_SendAck(uint8 AckBit)//发送应答
+  102          {
+  103   1        MyI2C_W_SDA(AckBit);
+  104   1        MyI2C_W_SCL(1);
+  105   1        MyI2C_W_SCL(0); 
+  106   1      }
+  107          
+  108          uint8 MyI2C_ReceiveAck(void)//接收应答
+  109          {
+  110   1        uint8 AckBit;
+  111   1        MyI2C_W_SDA(1);
+  112   1        MyI2C_W_SCL(1);
+  113   1        
+  114   1        AckBit = MyI2C_R_SDA();
+  115   1        MyI2C_W_SCL(0);
+  116   1      
+  117   1        return AckBit;
+  118   1      } 
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =    ------     ------
+  ecode size           =       394     ------
+C251 COMPILER V5.60.0,  MyI2C                                                              08/07/23  20:48:15  PAGE 3   
+
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        16     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,126 @@
+C251 COMPILER V5.60.0,  MPU6050                                                            08/07/23  20:48:15  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE MPU6050
+OBJECT MODULE PLACED IN .\Out_File\MPU6050.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\MPU6050.c XSMALL INTR2 ROM(HUGE) WARNINGLEVEL(3) OPTIMIZE(0,SP
+                    -EED) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\C
+                    -ODE;..\USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\MPU6050.lst) TABS(2) OBJECT(.\Out_File\MPU6050.obj) 
+
+stmt  level    source
+
+    1          #include "MyI2C.H"
+    2          #include "MPU6050_Reg.h"
+    3          #include "MPU6050.h"
+    4          #define MPU6050_ADDRESS          0xD0
+    5          
+    6          int16 icm_gyro_x,icm_gyro_y,icm_gyro_z;
+    7          int16 icm_acc_x,icm_acc_y,icm_acc_z;
+    8          
+    9          void MPU6050_WriteReg(uint8 RegAddress, uint8 Data)
+   10          {
+   11   1        MyI2C_Start();
+   12   1        
+   13   1        MyI2C_SendByte(MPU6050_ADDRESS);
+   14   1        MyI2C_ReceiveAck();
+   15   1        MyI2C_SendByte(RegAddress);
+   16   1        MyI2C_ReceiveAck();
+   17   1        MyI2C_SendByte(Data);
+   18   1        MyI2C_ReceiveAck();
+   19   1        
+   20   1        MyI2C_Stop();
+   21   1      }
+   22          
+   23          uint8 MPU6050_ReadReg(uint8 RegAddress)
+   24          {
+   25   1        uint8 Data;
+   26   1        
+   27   1        MyI2C_Start();
+   28   1        MyI2C_SendByte(MPU6050_ADDRESS);
+   29   1        MyI2C_ReceiveAck();
+   30   1        MyI2C_SendByte(RegAddress);
+   31   1        MyI2C_ReceiveAck();
+   32   1        
+   33   1        MyI2C_Start();
+   34   1        MyI2C_SendByte(MPU6050_ADDRESS | 0x01); //发送读指令
+   35   1        MyI2C_ReceiveAck();
+   36   1        Data = MyI2C_ReceiveByte();
+   37   1        
+   38   1        MyI2C_SendAck(1);
+   39   1        MyI2C_Stop();
+   40   1        
+   41   1        return Data;
+   42   1      }
+   43          
+   44          void MPU6050_Init1(void)
+   45          {
+   46   1        MyI2C_Init();
+   47   1        MPU6050_WriteReg(MPU6050_PWR_MGMT_1, 0x01); //解除睡眠，陀螺仪时钟
+   48   1        MPU6050_WriteReg(MPU6050_PWR_MGMT_2, 0x00); // 6轴都不待机
+   49   1        MPU6050_WriteReg(MPU6050_SMPLRT_DIV, 0x09);    // 采样分频10
+   50   1        MPU6050_WriteReg(MPU6050_CONFIG, 0x06);   //滤波
+   51   1        MPU6050_WriteReg(MPU6050_GYRO_CONFIG, 0x18);             //0x18   0-7 8位 只看第3和低4位 十进制0-3配置量
+             -程
+   52   1        MPU6050_WriteReg(MPU6050_ACCEL_CONFIG, 0x18);
+   53   1      }
+   54          
+   55          void MPU6050_GetData(int16 *AccX, int16 *AccY, int16 *AccZ,
+   56                              int16 *GyroX, int16 *GyroY, int16 *GyroZ)
+C251 COMPILER V5.60.0,  MPU6050                                                            08/07/23  20:48:15  PAGE 2   
+
+   57          {
+   58   1        uint8 DataH, DataL;
+   59   1        
+   60   1        DataH = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_H);
+   61   1        DataL = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_L);
+   62   1        *AccX = (DataH << 8) | DataL;
+   63   1        
+   64   1        DataH = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_H);
+   65   1        DataL = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_L);
+   66   1        *AccY = (DataH << 8) | DataL;
+   67   1        
+   68   1        DataH = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_H);
+   69   1        DataL = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_L);
+   70   1        *AccZ = (DataH << 8) | DataL;
+   71   1        
+   72   1        DataH = MPU6050_ReadReg(MPU6050_GYRO_XOUT_H);
+   73   1        DataL = MPU6050_ReadReg(MPU6050_GYRO_XOUT_L);
+   74   1        *GyroX = (DataH << 8) | DataL;
+   75   1        
+   76   1        DataH = MPU6050_ReadReg(MPU6050_GYRO_YOUT_H);
+   77   1        DataL = MPU6050_ReadReg(MPU6050_GYRO_YOUT_L);
+   78   1        *GyroY = (DataH << 8) | DataL;
+   79   1        
+   80   1        DataH = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_H);
+   81   1        DataL = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_L);
+   82   1        *GyroZ = (DataH << 8) | DataL;
+   83   1      }
+   84          
+   85          void MPU6050_Getdata1(void)
+   86          {
+   87   1        MPU6050_GetData(&icm_acc_x,&icm_acc_y,&icm_acc_z,&icm_gyro_x,&icm_gyro_y,&icm_gyro_z);
+   88   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =    ------     ------
+  ecode size           =       500     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        42     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

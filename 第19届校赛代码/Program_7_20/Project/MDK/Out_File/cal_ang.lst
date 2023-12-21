@@ -1,0 +1,96 @@
+C251 COMPILER V5.60.0,  cal_ang                                                            08/07/23  20:48:39  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE cal_ang
+OBJECT MODULE PLACED IN .\Out_File\cal_ang.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\cal_ang.c XSMALL INTR2 ROM(HUGE) WARNINGLEVEL(3) OPTIMIZE(0,SP
+                    -EED) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\C
+                    -ODE;..\USER\inc;..\USER\src) DEBUG PRINT(.\Out_File\cal_ang.lst) TABS(2) OBJECT(.\Out_File\cal_ang.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "all_init.h"
+    3          #include "MPU6050.h"
+    4          #include "encoder.h"
+    5          
+    6          float gyroX, gyroY, gyroZ;
+    7          static const float dt = 8.0 / 1000;  // 间隔8ms
+    8          static const float ZERO_OFFSET_COUN=(1 / 8.0 * 1000);// 1/8=125次每秒    
+    9           
+   10          static int g_GetZeroOffset = 0;
+   11          static float gyroX_offset = 0.0f, gyroY_offset = 0.0f, gyroZ_offset = 0.0f;
+   12          
+   13          static float integralX = 0.0f, integralY = 0.0f, integralZ = 0.0f;
+   14          
+   15          float ang_z;
+   16          
+   17          void get_ang(void)
+   18          {
+   19   1          MPU6050_Getdata1();   //上面包含了6050的h文件 所以这里可以直接使用icm这个变量值
+   20   1          gyroX=icm_gyro_x;
+   21   1          gyroY=icm_gyro_y;
+   22   1          gyroZ=icm_gyro_z;
+   23   1          gyroX /= 16.384f; // 我的MPU6050初始化的±2000LSB量程 (32768 / 2000) = 16.384f
+   24   1          gyroY /= 16.384f;
+   25   1          gyroZ /= 16.384f;
+   26   1            // 间隔8ms一次采样，统计125次，共1秒时间
+   27   1          if (g_GetZeroOffset++ < ZERO_OFFSET_COUN)
+   28   1          {
+   29   2            gyroX_offset += gyroX * dt;  // 每次8%积分，累计加权125次
+   30   2            gyroY_offset += gyroY * dt;
+   31   2            gyroZ_offset += gyroZ * dt;
+   32   2          }
+   33   1       
+   34   1          // 除去零偏
+   35   1          gyroX -= gyroX_offset;
+   36   1          gyroY -= gyroY_offset;
+   37   1          gyroZ -= gyroZ_offset;
+   38   1          
+   39   1          if (g_GetZeroOffset > ZERO_OFFSET_COUN) // 统计完零偏后开始累计偏角
+   40   1          {
+   41   2            integralX += gyroX * dt;  // 每次8%权重累计偏转角度
+   42   2            integralY += gyroY * dt;
+   43   2            integralZ += gyroZ * dt;
+   44   2            // 360°一个循环
+   45   2            if (integralX > 360)
+   46   2              integralX -= 360;
+   47   2            if (integralX < -360)
+   48   2              integralX += 360;
+   49   2            if (integralY > 360)
+   50   2              integralY -= 360;
+   51   2            if (integralY < -360)
+   52   2              integralY += 360;
+   53   2            if (integralZ > 360)
+   54   2              integralZ -= 360;
+   55   2            if (integralZ < -360)
+   56   2              integralZ += 360;
+   57   2          }
+C251 COMPILER V5.60.0,  cal_ang                                                            08/07/23  20:48:39  PAGE 2   
+
+   58   1          ang_z=integralZ*6.18; //*12后 转90度对应106度
+   59   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =    ------     ------
+  ecode size           =       676     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        42     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        62     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

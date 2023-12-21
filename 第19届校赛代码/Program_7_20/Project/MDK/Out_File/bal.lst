@@ -1,0 +1,149 @@
+C251 COMPILER V5.60.0,  bal                                                                25/11/23  21:38:42  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE bal
+OBJECT MODULE PLACED IN .\Out_File\bal.obj
+COMPILER INVOKED BY: C:\Keil_v5\C251\BIN\C251.EXE ..\CODE\bal.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE IN
+                    -CDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\in
+                    -c;..\USER\src) DEBUG PRINT(.\Out_File\bal.lst) TABS(2) OBJECT(.\Out_File\bal.obj) 
+
+stmt  level    source
+
+    1          #include "headfile.h"
+    2          #include "bal.h"
+    3          #include "motor.h"
+    4          #include "LQ_PID.h"
+    5          #include "encoder.h"
+    6          #include "electronic.h"
+    7          #include "element.h"
+    8          
+    9          int16  Pulse_L=0, Pulse_R=0;
+   10          extern int8 Turn_flag;
+   11          extern float electro_error;
+   12          extern char gyroflag;
+   13          float Speed_L_Out=0, Speed_R_Out=0;
+   14          int16 Speed_Target_car = 0;
+   15          int16 Speed_Turn=0;
+   16          int16 L_Speed_Now_car=0, R_Speed_Now_car=0;
+   17          int16 L_Speed_Now_Error=0, R_Speed_Now_Error=0;
+   18          int16 L_Speed_Last_Error=0, R_Speed_Last_Error=0;
+   19          int16 Angle_Turn=0;
+   20          
+   21          float Turn_OUT = 0;
+   22          int16 L_target=0, R_target=0;
+   23          float angle;                //实际的物理量
+   24          
+   25          pid_param_t Turn_PID,Angle_PID,
+   26          L_Speed_PID,R_Speed_PID;
+   27          void All_PID_Init(void)
+   28          { 
+   29   1        Speed_Target_car=95;//速度赋值120
+   30   1        
+   31   1        PidInit(&L_Speed_PID);  
+   32   1        PidInit(&R_Speed_PID);    
+   33   1        PidInit(&Turn_PID);
+   34   1        PidInit(&Angle_PID); 
+   35   1        
+   36   1        L_Speed_PID.kp = 10;        
+   37   1        L_Speed_PID.ki = 0.01;                        
+   38   1        L_Speed_PID.kd = 0;
+   39   1        
+   40   1        R_Speed_PID.kp = 8;       
+   41   1        R_Speed_PID.ki = 0.015;                     
+   42   1        R_Speed_PID.kd = 0; 
+   43   1        
+   44   1        Turn_PID.kp = 3.4;  //3.5   
+   45   1        Turn_PID.ki = 0;
+   46   1        Turn_PID.kd = 0.006;//0.001
+   47   1        
+   48   1        Angle_PID.kp = 0.4;//0.6    
+   49   1        Angle_PID.ki = 0.011;//0
+   50   1        Angle_PID.kd = 0;
+   51   1      }
+   52          
+   53          void Encoder_cal(void)
+   54          {
+   55   1          Pulse_L = encoder_get(EncoderL);    //编码器原始数据
+   56   1          Pulse_L *= 2;
+   57   1          Pulse_R = encoder_get(EncoderR);
+C251 COMPILER V5.60.0,  bal                                                                25/11/23  21:38:42  PAGE 2   
+
+   58   1        
+   59   1          if(P53==0)
+   60   1          {
+   61   2            Pulse_R = -Pulse_R;
+   62   2          }
+   63   1          if(P35==1)
+   64   1          {
+   65   2            Pulse_L = -Pulse_L;
+   66   2          }
+   67   1      }
+   68          /*************总控制***********/
+   69          void Bal_control(void)
+   70          {
+   71   1          if (gyroflag)
+   72   1          {
+   73   2              imu660ra_get_gyro();
+   74   2            angle=imu660ra_gyro_transition(imu660ra_gyro_z);
+   75   2            Angle_Turn=PidIncCtrl(&Angle_PID, Turn_OUT+angle);
+   76   2            gyroflag=0;
+   77   2          }
+   78   1          
+   79   1          if(Turn_flag)     //电磁信号处理完成一次的标志位，5ms处理完成一次 执行一次转向
+             -pid计算
+   80   1          {       
+   81   2              Turn_OUT = PidLocCtrl(&Turn_PID, electro_error);   //闭环转向控制
+   82   2              Turn_flag=0;
+   83   2          }
+   84   1          velocity_control(); 
+   85   1      }
+   86          
+   87          /****************速度环***********/
+   88          void velocity_control(void)
+   89          { 
+   90   1          L_Speed_Now_car=Pulse_L;
+   91   1          R_Speed_Now_car=Pulse_R;
+   92   1            
+   93   1          //正常循迹
+   94   1          if(Speed_Turn<10) Speed_Turn=0;
+   95   1          if(Speed_Turn>85) Turn_PID.kp=3.6;
+   96   1          if(Speed_Turn<85&&Speed_Turn>10) Turn_PID.kp=3.4;
+   97   1          L_target = Speed_Target_car + Angle_Turn;
+   98   1          R_target = Speed_Target_car - Angle_Turn;
+   99   1          
+  100   1          L_Speed_Now_Error = L_target - L_Speed_Now_car;   
+  101   1          R_Speed_Now_Error = R_target - R_Speed_Now_car;
+  102   1          
+  103   1          Speed_L_Out = PidIncCtrl(&L_Speed_PID, L_Speed_Now_Error);      //传递给速度环的误差为    期望
+             -速度-实际速度+/-转向环输出值
+  104   1          Speed_R_Out = PidIncCtrl(&R_Speed_PID, R_Speed_Now_Error);      //左右轮分开pid    右轮加  左轮减
+  105   1          
+  106   1          ctimer_count_clean(EncoderL);                                        // 清空编码器计数
+  107   1          ctimer_count_clean(EncoderR);                                        // 清空编码器计数
+  108   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       519     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =       234     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+C251 COMPILER V5.60.0,  bal                                                                25/11/23  21:38:42  PAGE 3   
+
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       102     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
